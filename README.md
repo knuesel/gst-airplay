@@ -2,6 +2,10 @@ A GStreamer plugin that provides an `airplaysrc` element for receiving video
 streamed from Apple devices using the AirPlay protocol. Audio is currently not
 supported.
 
+Here's a screenshot showing the iPad screen in OBS Studio:
+
+![iPad screen in OBS Studio](doc/obs-ipad.png)
+
 ## Installation
 
 See [below](#building) for build instructions. Once you have the file `libgstairplay.so`,
@@ -26,6 +30,11 @@ gstreamer1.0-libav
 libavahi-compat-libdnssd1
 libplist3
 ```
+
+To stream the video from an iPad, once you have a GStreamer pipeline running,
+select "Screen Mirroring" in the iPad control center. You should see
+"gstairplay" as a mirroring destination. Select it, and the streaming should
+start after a few seconds.
 
 ### Showing the video in a window
 
