@@ -9,11 +9,11 @@ Here's a screenshot showing the iPad screen in OBS Studio:
 ## Installation
 
 See [below](#building) for build instructions. Once you have the file `libgstairplay.so`,
-you must let GStreamer find it. Possibilities include:
+you must let GStreamer find it. You can do one of the following:
 
-* Placing the `libgstairplay.so` file in `~/.local/share/gstreamer-1.0/plugins`.
-* Using the `--gst-plugin-path` option with `gst-launch` (for example `gst-launch-1.0 --gst-plugin-path=~/my-gst-plugins` airplaysrc ! ...`, see below for complete pipelines).
-* Add the directory containing the plugin to the `GST_PLUGIN_PATH` environment variable.
+* place the `libgstairplay.so` file in `~/.local/share/gstreamer-1.0/plugins` (create this `plugins` directory if it doesn't exist already), or
+* use the `--gst-plugin-path` option with `gst-launch` (for example `gst-launch-1.0 --gst-plugin-path=~/my-gst-plugins airplaysrc ! ...`, see below for examples of complete pipelines), or
+* add the directory containing the plugin to the `GST_PLUGIN_PATH` environment variable.
 
 ## Usage
 
@@ -164,7 +164,10 @@ Plugin Details:
   +-- 1 elements
 ```
 
-If you get an error message, see the [troubleshooting](#troubleshooting) section.
+If you get an error message, see the [Troubleshooting](#troubleshooting) section.
+
+If you have a valid plugin, you can proceed to install it (see the
+[Installation](#installation) section at the top of this page).
 
 ## Credits
 
