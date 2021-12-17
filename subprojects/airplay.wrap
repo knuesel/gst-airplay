@@ -1,0 +1,3 @@
+[wrap-git]
+url = https://github.com/knuesel/RPiPlay
+revision = airplay-lib

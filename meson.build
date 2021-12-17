@@ -37,12 +37,15 @@ airplay_sources = [
   'src/gstairplaysrc.c'
   ]
 
-libairplaydep = dependency('airplay')
+# RPiPlay airplay library
+cmake = import('cmake')
+sub_proj = cmake.subproject('airplay')
+airplay_dep = sub_proj.dependency('airplay')
 
 gstairplay = library('gstairplay',
   airplay_sources,
   c_args: plugin_c_args,
-  dependencies : [gstbase_dep, gstvideo_dep, libairplaydep, gio_dep],
+  dependencies : [gstbase_dep, gstvideo_dep, airplay_dep, gio_dep],
   install : true,
   install_dir : plugins_install_dir,
 )
