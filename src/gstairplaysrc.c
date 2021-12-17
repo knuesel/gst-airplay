@@ -19,9 +19,9 @@
 #include <config.h>
 #endif
 
-#include <airplay/stream.h>
-#include <airplay/dnssd.h>
-#include <airplay/raop.h>
+#include <lib/stream.h>
+#include <lib/dnssd.h>
+#include <lib/raop.h>
 
 #include "gstairplaysrc.h"
 
