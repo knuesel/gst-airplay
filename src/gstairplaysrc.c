@@ -40,6 +40,7 @@ struct _GstAirPlayData {
   dnssd_t *dnssd;
   GAsyncQueue *done_buffers;
   GAsyncQueue *filled_buffers;
+  GMutex property_lock;
 };
 
 static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src",
@@ -92,15 +93,39 @@ static void video_process(void *cls, raop_ntp_t *ntp, h264_decode_struct *data) 
 static void conn_init(void *cls)
 {
   GstAirPlaySrc *self = GST_AIRPLAY_SRC (cls);
-  self->connected = true;
-  g_object_notify_by_pspec(G_OBJECT(self), prop_connected);
+  gboolean notify = false;
+
+  g_mutex_lock(&self->data->property_lock);
+  if (!self->connected)
+  {
+    self->connected = true;
+    notify = true;
+  }
+  g_mutex_unlock(&self->data->property_lock);
+
+  if (notify)
+  {
+    g_object_notify_by_pspec(G_OBJECT(self), prop_connected);
+  }
 }
 
 static void conn_destroy(void *cls)
 {
   GstAirPlaySrc *self = GST_AIRPLAY_SRC (cls);
-  self->connected = false;
-  g_object_notify_by_pspec(G_OBJECT(self), prop_connected);
+  gboolean notify = false;
+
+  g_mutex_lock(&self->data->property_lock);
+  if (self->connected)
+  {
+    self->connected = false;
+    notify = true;
+  }
+  g_mutex_unlock(&self->data->property_lock);
+
+  if (notify)
+  {
+    g_object_notify_by_pspec(G_OBJECT(self), prop_connected);
+  }
 }
 
 static void log_callback(void *cls, int level, const char *msg)
@@ -260,6 +285,7 @@ gst_airplay_src_init (GstAirPlaySrc * self)
   self->data->filled_buffers = g_async_queue_new_full ((GDestroyNotify) g_byte_array_unref);
   self->data->raop = NULL;
   self->data->dnssd = NULL;
+  g_mutex_init(&self->data->property_lock);
 
   gst_base_src_set_format (GST_BASE_SRC (self), GST_FORMAT_TIME);
   gst_base_src_set_live (GST_BASE_SRC (self), TRUE);
@@ -277,6 +303,7 @@ gst_airplay_src_finalize (GObject * object)
 
   g_clear_object (&self->cancellable);
 
+  g_mutex_clear(&self->data->property_lock);
   g_async_queue_unref (self->data->filled_buffers);
   g_async_queue_unref (self->data->done_buffers);
   g_free (self->data);
@@ -333,7 +360,9 @@ gst_airplay_src_get_property (GObject * object,
 
   switch (prop_id) {
     case PROP_CONNECTED:
+      g_mutex_lock(&self->data->property_lock);
       g_value_set_boolean (value, self->connected);
+      g_mutex_unlock(&self->data->property_lock);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
