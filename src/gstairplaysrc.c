@@ -29,9 +29,15 @@ const int max_buffers = 10;
 const char* name = "gstairplay";
 const char hw_address[] = {0x48, 0x5d, 0x60, 0x7c, 0xee, 0x22 };
 
+enum
+{
+  PROP_0,
+  PROP_CONNECTED
+};
+
 struct _GstAirPlayData {
-  raop_t* raop;
-  dnssd_t* dnssd;
+  raop_t *raop;
+  dnssd_t *dnssd;
   GAsyncQueue *done_buffers;
   GAsyncQueue *filled_buffers;
 };
@@ -40,6 +46,8 @@ static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
     GST_STATIC_CAPS_ANY);
+
+static GParamSpec *prop_connected;
 
 #define GST_CAT_DEFAULT gst_debug_airplay_src
 GST_DEBUG_CATEGORY (GST_CAT_DEFAULT);
@@ -81,6 +89,19 @@ static void video_process(void *cls, raop_ntp_t *ntp, h264_decode_struct *data) 
   // video_renderer_render_buffer(video_renderer, ntp, data->data, data->data_len, data->pts, data->frame_type);
 }
 
+static void conn_init(void *cls)
+{
+  GstAirPlaySrc *self = GST_AIRPLAY_SRC (cls);
+  self->connected = true;
+  g_object_notify_by_pspec(G_OBJECT(self), prop_connected);
+}
+
+static void conn_destroy(void *cls)
+{
+  GstAirPlaySrc *self = GST_AIRPLAY_SRC (cls);
+  self->connected = false;
+  g_object_notify_by_pspec(G_OBJECT(self), prop_connected);
+}
 
 static void log_callback(void *cls, int level, const char *msg)
 {
@@ -98,8 +119,8 @@ gst_airplay_src_start (GstBaseSrc * bsrc)
   raop_callbacks_t raop_cbs;
   memset(&raop_cbs, 0, sizeof(raop_cbs));
   raop_cbs.cls = self;
-  //raop_cbs.conn_init = conn_init;
-  //raop_cbs.conn_destroy = conn_destroy;
+  raop_cbs.conn_init = conn_init;
+  raop_cbs.conn_destroy = conn_destroy;
   raop_cbs.audio_process = audio_process;
   raop_cbs.video_process = video_process;
   //raop_cbs.audio_flush = audio_flush;
@@ -230,6 +251,7 @@ static void
 gst_airplay_src_init (GstAirPlaySrc * self)
 {
   self->cancellable = g_cancellable_new ();
+  self->connected = false;
 
   GST_DEBUG_OBJECT (self, "init");
 
@@ -292,12 +314,13 @@ gst_airplay_src_set_property (GObject * object,
 {
   GstAirPlaySrc *self = GST_AIRPLAY_SRC (object);
 
-  GST_DEBUG_OBJECT (self, "get property");
+  GST_DEBUG_OBJECT (self, "set property");
 
-  //if (!gst_srt_object_set_property_helper (self->srtobject, prop_id, value,
-  //        pspec)) {
-  //  G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-  //}
+  switch (prop_id) {
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 static void
@@ -306,12 +329,16 @@ gst_airplay_src_get_property (GObject * object,
 {
   GstAirPlaySrc *self = GST_AIRPLAY_SRC (object);
 
-  GST_DEBUG_OBJECT (self, "set property");
+  GST_DEBUG_OBJECT (self, "get property");
 
-  //if (!gst_srt_object_get_property_helper (self->srtobject, prop_id, value,
-  //        pspec)) {
-  //  G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-  //}
+  switch (prop_id) {
+    case PROP_CONNECTED:
+      g_value_set_boolean (value, self->connected);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 static void
@@ -327,6 +354,11 @@ gst_airplay_src_class_init (GstAirPlaySrcClass * klass)
   gobject_class->set_property = gst_airplay_src_set_property;
   gobject_class->get_property = gst_airplay_src_get_property;
   gobject_class->finalize = gst_airplay_src_finalize;
+
+  prop_connected = g_param_spec_boolean ("connected", "Connected",
+      "Whether a client is connected to the airplay server",
+      FALSE, G_PARAM_READABLE);
+  g_object_class_install_property (gobject_class, PROP_CONNECTED, prop_connected);
 
   gst_element_class_add_static_pad_template (gstelement_class, &src_template);
   gst_element_class_set_metadata (gstelement_class,

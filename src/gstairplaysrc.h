@@ -27,6 +27,8 @@ struct _GstAirPlaySrc {
 
   GstAirPlayData *data;
   GCancellable *cancellable;
+
+  gboolean connected;
 };
 
 struct _GstAirPlaySrcClass {
