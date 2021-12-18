@@ -115,23 +115,9 @@ meson
 ninja-build
 ```
 
-Then clone and build RPiPlay. The fork at https://github.com/knuesel/RPiPlay is
-currently required. I use the following commands:
-
-```
-git clone https://github.com/knuesel/RPiPlay
-cd RPiPlay
-mkdir -p build install
-cd build
-cmake -DCMAKE_INSTALL_PREFIX=../install ..
-make install
-```
-
 Then clone and build this project. I use the following:
 
 ```
-cd ../..  # Get out of the RPiPlay directory
-export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/RPiPlay/install/lib/pkgconfig
 git clone https://github.com/knuesel/gst-airplay
 cd gst-airplay
 meson build
@@ -173,7 +159,8 @@ If you have a valid plugin, you can proceed to install it (see the
 
 The pluging code is based on
 [gst-template](https://gitlab.freedesktop.org/gstreamer/gst-template/) and uses
-the AirPlay implementation from [RPiPlay](https://github.com/FD-/RPiPlay).
+the AirPlay implementation from [RPiPlay](https://github.com/FD-/RPiPlay) with
+some changes (published in [this fork](https://github.com/knuesel/RPiPlay)).
 
 ## License
 
