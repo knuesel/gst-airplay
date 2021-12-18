@@ -40,7 +40,9 @@ struct _GstAirPlayData {
   dnssd_t *dnssd;
   GAsyncQueue *done_buffers;
   GAsyncQueue *filled_buffers;
+
   GMutex property_lock;
+  gboolean connected;
 };
 
 static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src",
@@ -96,9 +98,9 @@ static void conn_init(void *cls)
   gboolean notify = false;
 
   g_mutex_lock(&self->data->property_lock);
-  if (!self->connected)
+  if (!self->data->connected)
   {
-    self->connected = true;
+    self->data->connected = true;
     notify = true;
   }
   g_mutex_unlock(&self->data->property_lock);
@@ -115,9 +117,9 @@ static void conn_destroy(void *cls)
   gboolean notify = false;
 
   g_mutex_lock(&self->data->property_lock);
-  if (self->connected)
+  if (self->data->connected)
   {
-    self->connected = false;
+    self->data->connected = false;
     notify = true;
   }
   g_mutex_unlock(&self->data->property_lock);
@@ -276,7 +278,6 @@ static void
 gst_airplay_src_init (GstAirPlaySrc * self)
 {
   self->cancellable = g_cancellable_new ();
-  self->connected = false;
 
   GST_DEBUG_OBJECT (self, "init");
 
@@ -285,6 +286,7 @@ gst_airplay_src_init (GstAirPlaySrc * self)
   self->data->filled_buffers = g_async_queue_new_full ((GDestroyNotify) g_byte_array_unref);
   self->data->raop = NULL;
   self->data->dnssd = NULL;
+  self->data->connected = false;
   g_mutex_init(&self->data->property_lock);
 
   gst_base_src_set_format (GST_BASE_SRC (self), GST_FORMAT_TIME);
@@ -361,7 +363,7 @@ gst_airplay_src_get_property (GObject * object,
   switch (prop_id) {
     case PROP_CONNECTED:
       g_mutex_lock(&self->data->property_lock);
-      g_value_set_boolean (value, self->connected);
+      g_value_set_boolean (value, self->data->connected);
       g_mutex_unlock(&self->data->property_lock);
       break;
     default:
