@@ -39,7 +39,9 @@ airplay_sources = [
 
 # RPiPlay airplay library
 cmake = import('cmake')
-libairplay = cmake.subproject('airplay')
+opt_var = cmake.subproject_options()
+opt_var.set_install(false)
+libairplay = cmake.subproject('airplay',  options: opt_var)
 libdns_sd_dep = dependency('avahi-compat-libdns_sd', required: true)
 libairplay_dep = libairplay.dependency('airplay')
 llhttp_dep = libairplay.dependency('llhttp')
