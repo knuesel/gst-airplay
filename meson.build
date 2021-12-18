@@ -40,16 +40,17 @@ airplay_sources = [
 # RPiPlay airplay library
 cmake = import('cmake')
 libairplay = cmake.subproject('airplay')
-libdns_sd_dep = dependency('libdns_sd', required: true)
+libdns_sd_dep = dependency('avahi-compat-libdns_sd', required: true)
 libairplay_dep = libairplay.dependency('airplay')
 llhttp_dep = libairplay.dependency('llhttp')
+thread_dep = dependency('threads')
 m_dep = cc.find_library('m', required: true)
 playfair_dep = libairplay.dependency('playfair')
 
 gstairplay = library('gstairplay',
   airplay_sources,
   c_args: plugin_c_args,
-  dependencies : [gstbase_dep, gstvideo_dep, libdns_sd_dep, libairplay_dep, llhttp_dep, m_dep, playfair_dep, gio_dep],
+  dependencies : [gstbase_dep, gstvideo_dep, libdns_sd_dep, libairplay_dep, llhttp_dep, thread_dep, m_dep, playfair_dep, gio_dep],
   install : true,
   install_dir : plugins_install_dir,
 )
