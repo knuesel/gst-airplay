@@ -26,18 +26,19 @@
 #include "gstairplaysrc.h"
 
 const int max_buffers = 10;
-const char* name = "gstairplay";
 const char hw_address[] = {0x48, 0x5d, 0x60, 0x7c, 0xee, 0x22 };
 
 enum
 {
   PROP_0,
-  PROP_CONNECTED
+  PROP_CONNECTED,
+  PROP_DNSSD_NAME,
 };
 
 struct _GstAirPlayData {
   raop_t *raop;
   dnssd_t *dnssd;
+  char *dnssd_name;
   GAsyncQueue *done_buffers;
   GAsyncQueue *filled_buffers;
 
@@ -51,9 +52,13 @@ static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src",
     GST_STATIC_CAPS_ANY);
 
 static GParamSpec *prop_connected;
+static GParamSpec *prop_dnssd_name;
 
 #define GST_CAT_DEFAULT gst_debug_airplay_src
 GST_DEBUG_CATEGORY (GST_CAT_DEFAULT);
+
+// Default property values
+#define DEFAULT_DNSSD_NAME "gstairplay"
 
 #define gst_airplay_src_parent_class parent_class
 G_DEFINE_TYPE_WITH_CODE (GstAirPlaySrc, gst_airplay_src,
@@ -140,6 +145,7 @@ static gboolean
 gst_airplay_src_start (GstBaseSrc * bsrc)
 {
   GstAirPlaySrc *self = GST_AIRPLAY_SRC (bsrc);
+  char *name = self->data->dnssd_name;
 
   GST_DEBUG_OBJECT (self, "start");
 
@@ -197,6 +203,7 @@ gst_airplay_src_stop (GstBaseSrc * bsrc)
   dnssd_unregister_raop(self->data->dnssd);
   GST_DEBUG_OBJECT (self, "stop: unregistering airplay");
   dnssd_unregister_airplay(self->data->dnssd);
+  g_free(self->data->dnssd_name);
   
   GST_DEBUG_OBJECT (self, "stop");
 
@@ -346,6 +353,12 @@ gst_airplay_src_set_property (GObject * object,
   GST_DEBUG_OBJECT (self, "set property");
 
   switch (prop_id) {
+    case PROP_DNSSD_NAME:
+      g_mutex_lock(&self->data->property_lock);
+      g_free (self->data->dnssd_name);
+      self->data->dnssd_name = g_strdup (g_value_get_string (value));
+      g_mutex_unlock(&self->data->property_lock);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -364,6 +377,11 @@ gst_airplay_src_get_property (GObject * object,
     case PROP_CONNECTED:
       g_mutex_lock(&self->data->property_lock);
       g_value_set_boolean (value, self->data->connected);
+      g_mutex_unlock(&self->data->property_lock);
+      break;
+    case PROP_DNSSD_NAME:
+      g_mutex_lock(&self->data->property_lock);
+      g_value_set_string (value, self->data->dnssd_name);
       g_mutex_unlock(&self->data->property_lock);
       break;
     default:
@@ -389,7 +407,11 @@ gst_airplay_src_class_init (GstAirPlaySrcClass * klass)
   prop_connected = g_param_spec_boolean ("connected", "Connected",
       "Whether a client is connected to the airplay server",
       FALSE, G_PARAM_READABLE);
+  prop_dnssd_name =  g_param_spec_string ("dnssd-name", "DNS-SD name",
+      "Name to use for the DNS Service Discovery", DEFAULT_DNSSD_NAME,
+      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
   g_object_class_install_property (gobject_class, PROP_CONNECTED, prop_connected);
+  g_object_class_install_property (gobject_class, PROP_DNSSD_NAME, prop_dnssd_name);
 
   gst_element_class_add_static_pad_template (gstelement_class, &src_template);
   gst_element_class_set_metadata (gstelement_class,
